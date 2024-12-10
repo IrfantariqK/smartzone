@@ -1,35 +1,33 @@
-'use client';
+"use client";
 
-import { Map } from '@/components/Map';
-import {
-  NotificationPanel,
-  CustomNotification,
-  RouteUpdate,
-} from "@/components/NotificationPanel";
-import { SearchBar } from '@/components/SearchBar';
-import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import { useState } from 'react';
 import type { Location } from '@/components/Map';
+import type { CustomNotification,  } from '@/components/NotificationPanel';
+import { SearchBar } from '@/components/SearchBar';
+
+// Dynamically import Map with no SSR
+const Map = dynamic(
+  () => import('@/components/Map').then((mod) => mod.Map),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-[700px] bg-gray-100 rounded-lg animate-pulse flex items-center justify-center">
+        <span className="text-gray-500">Loading map...</span>
+      </div>
+    )
+  }
+);
+
+// Dynamically import NotificationPanel with no SSR
+const NotificationPanel = dynamic(
+  () => import('@/components/NotificationPanel').then((mod) => mod.NotificationPanel),
+  { ssr: false }
+);
 
 export default function Home() {
-  const [notifications, setNotifications] = useState<CustomNotification[]>([]);
+  const [notifications, ] = useState<CustomNotification[]>([]);
   const [searchResult, setSearchResult] = useState<Location | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const handleRouteUpdate = (event: CustomEvent<RouteUpdate>) => {
-        setNotifications(prev => [...prev, {
-          type: 'Route Update',
-          data: event.detail,
-          timestamp: new Date()
-        }]);
-      };
-
-      window.addEventListener('routeUpdate', handleRouteUpdate as EventListener);
-      return () => {
-        window.removeEventListener('routeUpdate', handleRouteUpdate as EventListener);
-      };
-    }
-  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">

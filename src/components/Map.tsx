@@ -1,6 +1,6 @@
 "use client";
 
-import dynamic from 'next/dynamic';
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, useMemo } from "react";
 import L from "leaflet";
 import "leaflet-routing-machine";
@@ -18,7 +18,9 @@ export interface Location {
 // Wrap the map component with dynamic import
 const MapWithNoSSR = dynamic(() => Promise.resolve(MapComponent), {
   ssr: false,
-  loading: () => <div className="h-[700px] bg-gray-100 rounded-lg animate-pulse" />
+  loading: () => (
+    <div className="h-[700px] bg-gray-100 rounded-lg animate-pulse" />
+  ),
 });
 
 export function Map({ searchResult }: { searchResult: Location | null }) {
@@ -60,7 +62,7 @@ function MapComponent({ searchResult }: { searchResult: Location | null }) {
   );
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !mapContainer.current) return;
+    if (typeof window === "undefined" || !mapContainer.current) return;
 
     map.current = L.map(mapContainer.current).setView([24.9056, 67.0822], 12);
 
@@ -85,7 +87,13 @@ function MapComponent({ searchResult }: { searchResult: Location | null }) {
   }, [userIcon]);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !map.current || !userLocation || !searchResult) return;
+    if (
+      typeof window === "undefined" ||
+      !map.current ||
+      !userLocation ||
+      !searchResult
+    )
+      return;
 
     if (routingControl.current) {
       map.current.removeControl(routingControl.current);
