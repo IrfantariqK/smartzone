@@ -15,18 +15,20 @@ export default function Home() {
   const [searchResult, setSearchResult] = useState<Location | null>(null);
 
   useEffect(() => {
-    const handleRouteUpdate = (event: CustomEvent<RouteUpdate>) => {
-      setNotifications(prev => [...prev, {
-        type: 'Route Update',
-        data: event.detail,
-        timestamp: new Date()
-      }]);
-    };
+    if (typeof window !== 'undefined') {
+      const handleRouteUpdate = (event: CustomEvent<RouteUpdate>) => {
+        setNotifications(prev => [...prev, {
+          type: 'Route Update',
+          data: event.detail,
+          timestamp: new Date()
+        }]);
+      };
 
-    window.addEventListener('routeUpdate', handleRouteUpdate as EventListener);
-    return () => {
-      window.removeEventListener('routeUpdate', handleRouteUpdate as EventListener);
-    };
+      window.addEventListener('routeUpdate', handleRouteUpdate as EventListener);
+      return () => {
+        window.removeEventListener('routeUpdate', handleRouteUpdate as EventListener);
+      };
+    }
   }, []);
 
   return (

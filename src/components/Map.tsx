@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState, useMemo } from "react";
 import L from "leaflet";
 import "leaflet-routing-machine";
@@ -14,34 +15,52 @@ export interface Location {
   name: string;
 }
 
-interface MapProps {
-  searchResult: Location | null;
+// Wrap the map component with dynamic import
+const MapWithNoSSR = dynamic(() => Promise.resolve(MapComponent), {
+  ssr: false,
+  loading: () => <div className="h-[700px] bg-gray-100 rounded-lg animate-pulse" />
+});
+
+export function Map({ searchResult }: { searchResult: Location | null }) {
+  return <MapWithNoSSR searchResult={searchResult} />;
 }
 
-export function Map({ searchResult }: MapProps) {
+function MapComponent({ searchResult }: { searchResult: Location | null }) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const routingControl = useRef<L.Routing.Control | null>(null);
   const [userLocation, setUserLocation] = useState<Location | null>(null);
 
-  const userIcon = useMemo(() => new L.DivIcon({
-    className: 'custom-icon',
-    html: renderToString(<MdLocationOn className="text-red-500 text-4xl" />),
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
-  }), []);
+  const userIcon = useMemo(
+    () =>
+      new L.DivIcon({
+        className: "custom-icon",
+        html: renderToString(
+          <MdLocationOn className="text-red-500 text-4xl" />
+        ),
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32],
+      }),
+    []
+  );
 
-  const destinationIcon = new L.DivIcon({
-    className: 'custom-icon',
-    html: renderToString(<MdLocationOn className="text-green-500 text-4xl" />),
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
-  });
+  const destinationIcon = useMemo(
+    () =>
+      new L.DivIcon({
+        className: "custom-icon",
+        html: renderToString(
+          <MdLocationOn className="text-green-500 text-4xl" />
+        ),
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32],
+      }),
+    []
+  );
 
   useEffect(() => {
-    if (!mapContainer.current) return;
+    if (typeof window === 'undefined' || !mapContainer.current) return;
 
     map.current = L.map(mapContainer.current).setView([24.9056, 67.0822], 12);
 
@@ -63,10 +82,10 @@ export function Map({ searchResult }: MapProps) {
     return () => {
       map.current?.remove();
     };
-  }, []);
+  }, [userIcon]);
 
   useEffect(() => {
-    if (!map.current || !userLocation || !searchResult) return;
+    if (typeof window === 'undefined' || !map.current || !userLocation || !searchResult) return;
 
     if (routingControl.current) {
       map.current.removeControl(routingControl.current);
@@ -75,50 +94,46 @@ export function Map({ searchResult }: MapProps) {
     routingControl.current = L.Routing.control({
       waypoints: [
         L.latLng(userLocation.lat, userLocation.lng),
-        L.latLng(searchResult.lat, searchResult.lng)
+        L.latLng(searchResult.lat, searchResult.lng),
       ],
       routeWhileDragging: true,
       showAlternatives: true,
       addWaypoints: false,
       lineOptions: {
-        styles: [{ color: "#6366F1", weight: 6 }]
+        styles: [{ color: "#6366F1", weight: 6 }],
       },
-      createMarker: function(i: number, wp: L.Routing.Waypoint) {
+      createMarker: function (i: number, wp: L.Routing.Waypoint) {
         return L.marker(wp.latLng, {
-          icon: i === 0 ? userIcon : destinationIcon
+          icon: i === 0 ? userIcon : destinationIcon,
         });
-      }
+      },
     }).addTo(map.current);
 
-    routingControl.current.on('routesfound', (e: L.Routing.RoutesFoundEvent) => {
-      const routes = e.routes;
-      const summary = routes[0].summary;
-      const time = Math.round(summary.totalTime / 60);
-      const distance = Math.round(summary.totalDistance / 1000);
+    routingControl.current.on(
+      "routesfound",
+      (e: L.Routing.RoutesFoundEvent) => {
+        const routes = e.routes;
+        const summary = routes[0].summary;
+        const time = Math.round(summary.totalTime / 60);
+        const distance = Math.round(summary.totalDistance / 1000);
 
-      const event = new CustomEvent('routeUpdate', {
-        detail: {
-          from: userLocation.name,
-          to: searchResult.name,
-          time,
-          distance,
-          instructions: routes[0].instructions
-        }
-      });
-      window.dispatchEvent(event);
-    });
-
-    L.marker([searchResult.lat, searchResult.lng], { icon: destinationIcon })
-      .bindPopup(`<h3>${searchResult.name}</h3>`)
-      .addTo(map.current!);
-  }, [userLocation, searchResult]);
+        const event = new CustomEvent("routeUpdate", {
+          detail: {
+            from: userLocation.name,
+            to: searchResult.name,
+            time,
+            distance,
+            instructions: routes[0].instructions,
+          },
+        });
+        window.dispatchEvent(event);
+      }
+    );
+  }, [userLocation, searchResult, userIcon, destinationIcon]);
 
   return (
     <div className="relative h-[700px]">
-      <div 
-        ref={mapContainer} 
-        className="w-full h-full rounded-lg"
-      />
+      <div ref={mapContainer} className="w-full h-full rounded-lg" />
     </div>
   );
 }
